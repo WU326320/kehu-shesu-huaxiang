@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>涉诉画像工作台</title>
+<style>
+:root{
+  --paper:#F7F4EF; --card:#FCFBF8; --rail:#F1ECE3;
+  --ink:#2F3236; --ink2:#5C6166; --muted:#8A8F94;
+  --line:rgba(90,74,66,.16); --line2:rgba(90,74,66,.08);
+  --accent:#3F6F86; --accent-h:#335A6E; --accent-l:rgba(63,111,134,.08);
+  --ok:#5E9A66; --bad:#8B3A3A; --warn:#9A6840; --btn-ink:#FCFBF8;
+  --serif:'Noto Serif SC','Source Han Serif SC','Songti SC','SimSun',serif;
+  --ui:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:ui-monospace,Consolas,'Sarasa Mono SC',monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:13px;line-height:1.6;overflow:hidden}
+.app{display:grid;grid-template-rows:52px minmax(0,1fr);height:100vh}
+.top{display:flex;align-items:center;gap:16px;padding:0 22px;border-bottom:1px solid var(--line);background:var(--card)}
+.brand{font-family:var(--serif);font-size:16px;letter-spacing:.02em}
+.brand em{font-style:normal;color:var(--muted);font-size:12px;margin-left:10px}
+.phase{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:12.5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.g{background:var(--ok)} .dot.r{background:var(--bad)} .dot.y{background:var(--warn)}
+.grid{display:grid;grid-template-columns:300px minmax(0,1fr) 280px;gap:1px;background:var(--line2);min-height:0}
+.col{background:var(--paper);overflow-y:auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px}
+.col.rail{background:var(--rail)}
+h2{font-family:var(--serif);font-size:14px;font-weight:400;margin:0 0 10px;letter-spacing:.02em;
+   border-left:2px solid var(--accent);padding-left:8px;display:flex;align-items:center;gap:8px}
+h2 .num{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line2);border-radius:4px;padding:14px}
+.tag{font-size:12px;color:var(--ink2)}
+.muted{color:var(--muted);font-size:12px}
+.code{font-family:var(--mono);font-size:20px;letter-spacing:.2em;color:var(--accent-h);margin:6px 0}
+.btn{border:1px solid var(--line);background:transparent;color:var(--accent-h);padding:6px 12px;border-radius:3px;
+     cursor:pointer;font-size:12.5px;font-family:var(--ui);white-space:nowrap}
+.btn:hover{background:var(--accent-l)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--btn-ink)}
+.btn.primary:hover{background:var(--accent-h)}
+.btn.ghost{color:var(--ink2)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chk{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);align-items:flex-start}
+.chk:last-child{border-bottom:none}
+.chk .t{font-size:12.5px}
+.chk .d{font-size:11.5px;color:var(--muted)}
+.drop{border:1.5px dashed var(--line);border-radius:4px;padding:28px 16px;text-align:center;cursor:pointer;
+      background:rgba(0,0,0,.012)}
+.drop:hover,.drop.hot{border-color:var(--accent);background:var(--accent-l)}
+.drop .big{font-family:var(--serif);font-size:16px;margin-bottom:4px}
+label.opt{display:flex;align-items:flex-start;gap:8px;margin:6px 0;cursor:pointer}
+label.opt span{color:var(--ink2);font-size:12.5px}
+input[type=password],input[type=text]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:3px;
+  background:transparent;color:var(--ink);font-family:var(--mono);font-size:12.5px;margin:6px 0}
+.saved{font-size:12px;color:var(--ok);margin-top:4px}
+.err{color:var(--bad);font-size:12.5px;margin-top:6px;white-space:pre-wrap}
+pre.log{flex:1;margin:0;padding:12px;background:#1e2226;color:#d5d8d4;border-radius:4px;overflow:auto;
+        font-family:var(--mono);font-size:12px;line-height:1.55;min-height:220px;white-space:pre-wrap;word-break:break-all}
+.rules dt{font-weight:600;margin-top:8px}
+.rules dd{margin:0;color:var(--ink2);font-size:12.5px}
+a{color:var(--accent-h)}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">涉诉画像工作台 <em>2026-10-19</em></div>
+    <div class="phase"><i class="dot" id="stateDot"></i><span id="phase">待开始</span></div>
+  </header>
+  <div class="grid">
+    <section class="col rail" aria-label="授权">
+      <div class="card">
+        <h2>① 天眼查 <span class="num">必填</span></h2>
+        <div class="tag">用公司天眼查账号授权一次，之后自动续期。点「开始授权」后，在浏览器打开链接并输入 6 位验证码。</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" onclick="loginStart()">开始授权</button>
+          <button class="btn ghost" onclick="loginResume()">我已授权，继续</button>
+        </div>
+        <div id="loginOut"></div>
+      </div>
+      <div class="card">
+        <h2>② 企查查 <span class="num">可选，出表需要</span></h2>
+        <div class="tag">把 token 粘在下面，形如 <code>Bearer …</code>。只保存在本机「凭证.txt」，不会上传。</div>
+        <input id="qccTok" type="password" autocomplete="off" placeholder="Bearer …">
+        <div class="row">
+          <button class="btn" onclick="saveCred('qcc')">保存</button>
+          <span class="saved" id="qccSaved"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>③ 法宝 <span class="num">可选</span></h2>
+        <div class="tag">用于判赔全量核查。不填也可以出表，只是跳过核查。</div>
+        <input id="pkuTok" type="password" autocomplete="off" placeholder="Authorization">
+        <div class="row">
+          <button class="btn" onclick="saveCred('pku')">保存</button>
+          <span class="saved" id="pkuSaved"></span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>环境检查</h2>
+        <div id="checks"></div>
+        <button class="btn ghost" style="margin-top:8px" onclick="loadPreflight()">刷新</button>
+      </div>
+    </section>
+
+    <section class="col" aria-label="任务">
+      <div class="card">
+        <h2>名单与选项</h2>
+        <div id="drop" class="drop">
+          <div class="big">拖入或点击选择名单</div>
+          <div class="muted">Excel 或 CSV，列名含「企业名称 / 公司名称 / 名称」之一即可</div>
+        </div>
+        <input id="file" type="file" accept=".xlsx,.xls,.csv" hidden>
+        <div id="listinfo" class="tag" style="margin-top:8px"></div>
+        <label class="opt"><input type="checkbox" id="optRel" checked>
+          <span>补查关联主体（穿透控制企业，生成附表）</span></label>
+        <label class="opt"><input type="checkbox" id="optVerify" checked>
+          <span>判赔全量核查（法宝，逐笔；无法宝凭证时自动跳过）</span></label>
+        <div class="muted">结果默认写到「输出」目录。</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" id="btnStart" onclick="start()">开始</button>
+          <button class="btn" id="btnDl" disabled onclick="download()">下载结果</button>
+        </div>
+        <div id="startErr" class="err"></div>
+      </div>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <h2>运行日志</h2>
+        <pre class="log" id="log">尚未开始。配好左侧三个口子、上传名单后点「开始」。</pre>
+      </div>
+    </section>
+
+    <section class="col rail" aria-label="口径">
+      <div class="card">
+        <h2>口径 · 2026-10-19</h2>
+        <dl class="rules">
+          <dt>时间窗</dt><dd>裁判日期 2024-01-01 至 2026-10-31</dd>
+          <dt>案件类型</dt><dd>专利 / 商标 / 著作权 / 不正当竞争 / 其他知产</dd>
+          <dt>执行类</dt><dd>案由含「执行」且不含「之诉」的，不计件、不计判赔</dd>
+          <dt>成件</dt><dd>按案号：同案的「之一」「之二」算一件，不同案号各算一件</dd>
+          <dt>二审</dt><dd>正文点到原审案号、且当事人有交集才并入，否则单独一件</dd>
+          <dt>判赔</dt><dd>主文赔偿项之和，剔诉讼费；「在 X 元范围内」不另计；裁定书的案件金额不用</dd>
+          <dt>等级</dt><dd>A&gt;100 / B 51–100 / C 21–50 / D 6–20，基数 = 自身 + 关联</dd>
+          <dt>法宝</dt><dd>逐笔全量核查；查不到不改变金额，只标注来源</dd>
+        </dl>
+        <p class="muted" style="margin:12px 0 0">只统计已公开裁判文书。「近两年无知产案件」的意思是没查到公开文书，不是没打过官司。</p>
+      </div>
+      <div class="card">
+        <h2>使用提示</h2>
+        <div class="tag">本包已内置 Python 与 Node，不用另行安装。凭证只存在这台电脑上。外发或拷给同事前，请删除「凭证.txt」「法宝凭证.txt」和「缓存」里的数据。</div>
+      </div>
+    </section>
+  </div>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function post(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})});
+  return r.json();
+}
+
+async function loadPreflight(){
+  try{
+    const d = await (await fetch('/api/preflight')).json();
+    $('#checks').innerHTML = (d.checks||[]).map(c =>
+      `<div class="chk"><i class="dot ${c.ok?'g':'r'}"></i><div>
+        <div class="t">${esc(c.name)}</div>
+        <div class="d">${esc(c.detail)}</div>
+        ${c.fix && !c.ok ? `<div class="d" style="color:var(--warn)">${esc(c.fix)}</div>` : ''}
+      </div></div>`).join('');
+  }catch(e){
+    $('#checks').innerHTML = '<div class="err">无法连接工作台服务</div>';
+  }
+  try{
+    const c = await (await fetch('/api/cred')).json();
+    $('#qccSaved').textContent = c.has_qcc ? (c.qcc || '已保存') : '';
+    $('#pkuSaved').textContent = c.has_pku ? (c.pku || '已保存') : '';
+  }catch(e){}
+}
+
+async function saveCred(kind){
+  const v = (kind==='qcc' ? $('#qccTok').value : $('#pkuTok').value).trim();
+  const body = kind==='qcc' ? {qcc:v} : {pku:v};
+  const d = await post('/api/cred', body);
+  if(d.error){ alert(d.error); return; }
+  if(kind==='qcc'){ $('#qccTok').value=''; $('#qccSaved').textContent = d.has_qcc ? '已保存' : '已清空'; }
+  else { $('#pkuTok').value=''; $('#pkuSaved').textContent = d.has_pku ? '已保存' : '已清空'; }
+  loadPreflight();
+}
+
+async function loginStart(){
+  $('#loginOut').innerHTML = '<div class="tag" style="margin-top:8px">正在获取授权链接…</div>';
+  const d = await post('/api/login/start', {});
+  if(!d.ok){ $('#loginOut').innerHTML = '<pre class="err">'+esc(d.raw||'获取失败')+'</pre>'; return; }
+  $('#loginOut').innerHTML =
+    '<div class="tag" style="margin-top:10px">① 在浏览器打开：'
+    + (d.url ? '<a href="'+esc(d.url)+'" target="_blank" rel="noreferrer">授权页</a>' : '（未解析到链接，见下方原文）')
+    + '</div>'
+    + (d.code ? '<div class="tag">② 输入验证码</div><div class="code">'+esc(d.code)+'</div>' : '')
+    + '<div class="tag">③ 确认授权后回来点「我已授权，继续」</div>'
+    + (d.url ? '' : '<pre class="err">'+esc(d.raw||'')+'</pre>');
+}
+
+async function loginResume(){
+  $('#loginOut').innerHTML += '<div class="tag">正在确认…</div>';
+  const d = await post('/api/login/resume', {});
+  $('#loginOut').innerHTML = d.ok
+    ? '<div class="saved" style="margin-top:8px">授权成功</div>'
+    : '<div class="err">还没成功，请确认已在浏览器完成授权后再试。</div><pre class="err">'+esc(d.raw||'')+'</pre>';
+  loadPreflight();
+}
+
+const drop = $('#drop');
+drop.onclick = () => $('#file').click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('hot'); };
+drop.ondragleave = () => drop.classList.remove('hot');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('hot'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
+$('#file').onchange = e => { if(e.target.files[0]) handleFile(e.target.files[0]); };
+
+async function handleFile(f){
+  const buf = await f.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  const step = 0x8000;
+  for(let i=0;i<bytes.length;i+=step) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+step));
+  const d = await post('/api/upload', {name:f.name, data: btoa(bin)});
+  if(d.error){ $('#listinfo').innerHTML = '<span class="err">'+esc(d.error)+'</span>'; return; }
+  const preview = (d.preview||[]).slice(0,8).map(esc).join('、');
+  $('#listinfo').innerHTML = '已选「'+esc(d.name)+'」，共 '+d.count+' 家'
+    + (preview ? '：'+preview+(d.count>8?' …':'') : '');
+}
+
+async function start(){
+  $('#startErr').textContent = '';
+  const d = await post('/api/start', {rel: $('#optRel').checked, verify: $('#optVerify').checked});
+  if(d.error){ $('#startErr').textContent = d.error; return; }
+  tick();
+}
+
+function download(){ location.href = '/api/download'; }
+
+async function tick(){
+  try{
+    const s = await (await fetch('/api/status')).json();
+    const map = {idle:['待开始',''], running:['运行中','y'], done:['已完成','g'], error:['出错','r']};
+    const [txt, cls] = map[s.phase] || [s.phase, ''];
+    let extra = '';
+    if(s.started_at) extra += ' · 开始 '+s.started_at;
+    if(s.finished_at) extra += ' – '+s.finished_at;
+    $('#phase').textContent = txt + extra;
+    $('#stateDot').className = 'dot' + (cls ? ' '+cls : '');
+    $('#btnStart').disabled = s.phase === 'running';
+    $('#btnDl').disabled = !s.has_output;
+    if(s.log){ const el = $('#log'); const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40; el.textContent = s.log; if(atBottom) el.scrollTop = el.scrollHeight; }
+    if(s.error && s.phase==='error') $('#startErr').textContent = s.error;
+  }catch(e){}
+}
+loadPreflight(); tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
